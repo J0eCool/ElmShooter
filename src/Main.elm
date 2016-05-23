@@ -34,6 +34,8 @@ model =
     { lastTime = 0
     , mousePos = Vec2.init
     , shipPos = Vec2.init
+    , lastShotTime = 0
+    , bullets = []
     }
 
 
@@ -56,19 +58,26 @@ view model =
         toTuple point =
             ( point.x, point.y )
 
-        angle =
-            model.lastTime * pi
-
         elements =
-            [ Collage.rect (toFloat worldSize.w) (toFloat worldSize.h)
+            ([ Collage.rect (toFloat worldSize.w) (toFloat worldSize.h)
                 |> Collage.filled Color.gray
-            , Collage.rect 40 55
+             , Collage.rect 40 55
                 |> Collage.filled Color.blue
                 |> Collage.move (toTuple model.shipPos)
-            ]
+             ]
+                ++ (List.map
+                        (\pos ->
+                            Collage.rect 22 34
+                                |> Collage.filled Color.yellow
+                                |> Collage.move (toTuple pos)
+                        )
+                        model.bullets
+                   )
+            )
     in
         div []
             [ body
+            , text <| "Num bullets: " ++ toString (List.length model.bullets)
               --, Element.toHtml <| Element.show model
             ]
 
@@ -76,7 +85,7 @@ view model =
 update message model =
     case message of
         Nop ->
-            ( model, Cmd.none )
+            model ! []
 
         Tick rawTime ->
             let
@@ -106,10 +115,45 @@ update message model =
                         /+/ toMove
                         |> Vec2.max (Vec2 (-350) (-350))
                         |> Vec2.min (Vec2 350 150)
+
+                fireRate =
+                    1.5
+
+                didShoot =
+                    t - model.lastShotTime > 1 / fireRate
+
+                ( shotBullets, newShotTime ) =
+                    if didShoot then
+                        ( [ model.shipPos ], t )
+                    else
+                        ( [], model.lastShotTime )
+
+                bulletSpeed =
+                    1500
+
+                bulletToMove =
+                    Vec2 0 (dT * bulletSpeed)
+
+                bulletUpdate pos =
+                    let
+                        newPos =
+                            pos /+/ bulletToMove
+                    in
+                        if newPos.y < toFloat worldSize.h / 2 + 100 then
+                            Just newPos
+                        else
+                            Nothing
+
+                newBullets =
+                    model.bullets
+                        ++ shotBullets
+                        |> List.filterMap bulletUpdate
             in
                 { model
                     | lastTime = t
                     , shipPos = newShipPos
+                    , lastShotTime = newShotTime
+                    , bullets = newBullets
                 }
                     ! []
 
