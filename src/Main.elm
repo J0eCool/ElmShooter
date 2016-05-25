@@ -5,11 +5,8 @@ import Color
 import Element
 import Html exposing (div, text, button, ul, li)
 import Html.App as App
-import Http
 import Html.Events exposing (onClick)
-import Json.Decode as Decode exposing ((:=))
 import Mouse
-import String
 import Task
 import Time
 
@@ -18,6 +15,7 @@ import Time
 
 import Bullet
 import Constants exposing (worldSize)
+import Enemy
 import Vec2 exposing (Vec2, (/+/), (/-/), (.*/))
 
 
@@ -36,17 +34,17 @@ main =
         }
 
 
-model =
-    { lastTime = 0
-    , mousePos = Vec2.init
-    , shipPos = Vec2.init
-    , lastShotTime = 0
-    , bullets = []
-    }
-
-
 init =
     let
+        model =
+            { lastTime = 0
+            , mousePos = Vec2.init
+            , shipPos = Vec2.init
+            , lastShotTime = 0
+            , bullets = []
+            , enemies = []
+            }
+
         timeCmd =
             Task.perform (always Nop) (timeToSecond >> Tick) Time.now
     in
@@ -61,29 +59,21 @@ view model =
         body =
             Element.toHtml form
 
-        toTuple point =
-            ( point.x, point.y )
-
         elements =
             ([ Collage.rect (toFloat worldSize.w) (toFloat worldSize.h)
                 |> Collage.filled Color.gray
              , Collage.rect 40 55
                 |> Collage.filled Color.blue
-                |> Collage.move (toTuple model.shipPos)
+                |> Collage.move (Vec2.toTuple model.shipPos)
              ]
-                ++ (List.map
-                        (\pos ->
-                            Collage.rect 22 34
-                                |> Collage.filled Color.yellow
-                                |> Collage.move (toTuple pos)
-                        )
-                        model.bullets
-                   )
+                ++ (List.map Bullet.view model.bullets)
+                ++ (List.map Enemy.view model.enemies)
             )
     in
         div []
             [ body
-            , text <| "Num bullets: " ++ toString (List.length model.bullets)
+            , div [] [ text <| "Num bullets: " ++ toString (List.length model.bullets) ]
+            , div [] [ text <| "Num enemies: " ++ toString (List.length model.enemies) ]
               --, Element.toHtml <| Element.show model
             ]
 
@@ -120,16 +110,22 @@ update message model =
                         |> Vec2.min (Vec2 350 150)
 
                 fireRate =
-                    3
+                    2
 
                 didShoot =
                     t - model.lastShotTime > 1 / fireRate
 
-                ( shotBullets, newShotTime ) =
+                ( shotBullets, spawnedEnemies, newShotTime ) =
                     if didShoot then
-                        ( [ model.shipPos ], t )
+                        ( [ model.shipPos ]
+                        , [ { x = worldSize.w * cos (model.lastTime ^ 1.2) / 2
+                            , y = worldSize.h / 2
+                            }
+                          ]
+                        , t
+                        )
                     else
-                        ( [], model.lastShotTime )
+                        ( [], [], model.lastShotTime )
 
                 bulletUpdate bullet =
                     Bullet.update (Bullet.Tick dT) bullet
@@ -138,12 +134,21 @@ update message model =
                     model.bullets
                         ++ shotBullets
                         |> List.filterMap bulletUpdate
+
+                enemyUpdate enemy =
+                    Enemy.update (Enemy.Tick dT) enemy
+
+                newEnemies =
+                    model.enemies
+                        ++ spawnedEnemies
+                        |> List.filterMap enemyUpdate
             in
                 { model
                     | lastTime = t
                     , shipPos = newShipPos
                     , lastShotTime = newShotTime
                     , bullets = newBullets
+                    , enemies = newEnemies
                 }
                     ! []
 

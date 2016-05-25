@@ -103,3 +103,7 @@ lengthMin v1 v2 =
         v1
     else
         v2
+
+
+toTuple vec =
+    ( vec.x, vec.y )

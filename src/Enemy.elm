@@ -1,4 +1,4 @@
-module Bullet exposing (..)
+module Enemy exposing (..)
 
 import Collage
 import Color
@@ -29,15 +29,15 @@ update msg model =
         Tick dT ->
             let
                 speed =
-                    1200
+                    120
 
                 toMove =
-                    Vec2 0 (dT * speed)
+                    Vec2 0 (-dT * speed)
 
                 newPos =
                     model /+/ toMove
             in
-                if newPos.y < toFloat worldSize.h / 2 + 100 then
+                if newPos.y > -(toFloat worldSize.h / 2 + 100) then
                     Just newPos
                 else
                     Nothing
@@ -45,6 +45,6 @@ update msg model =
 
 view : Model -> Collage.Form
 view model =
-    Collage.rect 22 34
-        |> Collage.filled Color.yellow
+    Collage.rect 40 40
+        |> Collage.filled Color.red
         |> Collage.move (Vec2.toTuple model)
