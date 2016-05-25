@@ -12,12 +12,18 @@ import Mouse
 import String
 import Task
 import Time
+
+
+---
+
+import Bullet
+import Constants exposing (worldSize)
 import Vec2 exposing (Vec2, (/+/), (/-/), (.*/))
 
 
 type Msg
     = Nop
-    | Tick Time.Time
+    | Tick Float
     | MouseMoved Mouse.Position
 
 
@@ -42,7 +48,7 @@ model =
 init =
     let
         timeCmd =
-            Task.perform (always Nop) Tick Time.now
+            Task.perform (always Nop) (timeToSecond >> Tick) Time.now
     in
         ( model, timeCmd )
 
@@ -87,11 +93,8 @@ update message model =
         Nop ->
             model ! []
 
-        Tick rawTime ->
+        Tick t ->
             let
-                t =
-                    rawTime / 1000
-
                 dT =
                     t - model.lastTime
 
@@ -117,7 +120,7 @@ update message model =
                         |> Vec2.min (Vec2 350 150)
 
                 fireRate =
-                    1.5
+                    3
 
                 didShoot =
                     t - model.lastShotTime > 1 / fireRate
@@ -128,21 +131,8 @@ update message model =
                     else
                         ( [], model.lastShotTime )
 
-                bulletSpeed =
-                    1500
-
-                bulletToMove =
-                    Vec2 0 (dT * bulletSpeed)
-
-                bulletUpdate pos =
-                    let
-                        newPos =
-                            pos /+/ bulletToMove
-                    in
-                        if newPos.y < toFloat worldSize.h / 2 + 100 then
-                            Just newPos
-                        else
-                            Nothing
+                bulletUpdate bullet =
+                    Bullet.update (Bullet.Tick dT) bullet
 
                 newBullets =
                     model.bullets
@@ -173,12 +163,10 @@ subscriptions model =
             60
     in
         Sub.batch
-            [ Time.every (Time.second / fps) Tick
+            [ Time.every (Time.second / fps) (timeToSecond >> Tick)
             , Mouse.moves MouseMoved
             ]
 
 
-worldSize =
-    { w = 800
-    , h = 800
-    }
+timeToSecond rawTime =
+    rawTime / 1000
