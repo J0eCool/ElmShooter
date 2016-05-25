@@ -6,7 +6,9 @@ import Color
 
 ---
 
+import Bullet
 import Constants exposing (worldSize)
+import Rect exposing (collides)
 import Vec2 exposing (Vec2, (/+/))
 
 
@@ -23,8 +25,11 @@ init pos =
     pos
 
 
-update : Msg -> Model -> Maybe Model
-update msg model =
+
+--update : Msg -> Model -> Maybe Model
+
+
+update msg bullets model =
     case msg of
         Tick dT ->
             let
@@ -36,8 +41,14 @@ update msg model =
 
                 newPos =
                     model /+/ toMove
+
+                inBounds =
+                    newPos.y > -(toFloat worldSize.h / 2 + 100)
+
+                colliding =
+                    List.any (\bullet -> collidesWithBullet bullet model) bullets
             in
-                if newPos.y > -(toFloat worldSize.h / 2 + 100) then
+                if inBounds && not colliding then
                     Just newPos
                 else
                     Nothing
@@ -45,6 +56,24 @@ update msg model =
 
 view : Model -> Collage.Form
 view model =
-    Collage.rect 40 40
+    Collage.rect size.x size.y
         |> Collage.filled Color.red
         |> Collage.move (Vec2.toTuple model)
+
+
+size =
+    { x = 40
+    , y = 40
+    }
+
+
+collidesWithBullet : Bullet.Model -> Model -> Bool
+collidesWithBullet bullet enemy =
+    let
+        enemyRect =
+            Rect.init size enemy
+
+        bulletRect =
+            Rect.init Bullet.size bullet
+    in
+        Rect.collides enemyRect bulletRect

@@ -45,6 +45,12 @@ update msg model =
 
 view : Model -> Collage.Form
 view model =
-    Collage.rect 22 34
+    Collage.rect size.x size.y
         |> Collage.filled Color.yellow
         |> Collage.move (Vec2.toTuple model)
+
+
+size =
+    { x = 22
+    , y = 34
+    }

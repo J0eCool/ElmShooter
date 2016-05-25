@@ -136,7 +136,7 @@ update message model =
                         |> List.filterMap bulletUpdate
 
                 enemyUpdate enemy =
-                    Enemy.update (Enemy.Tick dT) enemy
+                    Enemy.update (Enemy.Tick dT) model.bullets enemy
 
                 newEnemies =
                     model.enemies
